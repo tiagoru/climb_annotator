@@ -1,9 +1,10 @@
 import streamlit as st
 import numpy as np
 import cv2
+import os
+import tempfile
 from streamlit_drawable_canvas import st_canvas
 import csv
-import os
 
 # Initialize global variables
 data = []
@@ -79,7 +80,13 @@ st.title("🧗 Climbing Video Annotator")
 video_file = st.file_uploader("Upload Video", type=["mp4"])
 
 if video_file is not None:
-    cap = cv2.VideoCapture(video_file)
+    # Save the uploaded video to a temporary file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+        tmp_file.write(video_file.read())  # Write the uploaded file content to the temporary file
+        tmp_file_path = tmp_file.name  # Store the temporary file path
+    
+    # Open the video file using OpenCV
+    cap = cv2.VideoCapture(tmp_file_path)
 
     if cap.isOpened():
         ret, frame = cap.read()
