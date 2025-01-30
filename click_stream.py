@@ -4,8 +4,8 @@ import os
 import streamlit as st
 import tempfile
 import shutil
-import tkinter as tk
-from tkinter import messagebox
+#import tkinter as tk
+#from tkinter import messagebox
 
 # Initialize global variables
 data = []
@@ -26,6 +26,22 @@ def save_click_to_csv(frame_number, x, y, comment):
 
     print(f"✅ Saved: Frame {frame_number}, X: {x}, Y: {y}, Action: {comment}")
 
+import streamlit as st
+
+def click_event(x, y):
+    actions = [
+        "Center of Mass", "Right Hand Pull", "Right Hand Push",
+        "Left Hand Pull", "Left Hand Push", "Right Foot Pull",
+        "Right Foot Push", "Left Foot Pull", "Left Foot Push"
+    ]
+
+    action = st.selectbox(f"Select action for click at ({x}, {y})", actions)
+    confirm = st.button("Confirm Selection")
+
+    if confirm:
+        st.success(f"Saved: Frame {frame_number}, X: {x}, Y: {y}, Action: {action}")
+        save_click_to_csv(frame_number, x, y, action)
+        
 def click_event(event, x, y, flags, param):
     global frame
     if event == cv2.EVENT_LBUTTONDOWN:
