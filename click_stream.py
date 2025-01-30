@@ -4,8 +4,6 @@ import cv2
 from streamlit_drawable_canvas import st_canvas
 import csv
 import os
-import tkinter as tk
-from tkinter import messagebox
 
 # Initialize global variables
 data = []
@@ -29,34 +27,23 @@ def save_click_to_csv(frame_number, x, y, comment):
     print(f"✅ Saved: Frame {frame_number}, X: {x}, Y: {y}, Action: {comment}")
 
 # Function to handle mouse click events
-def click_event(event, x, y, flags, param):
-    global frame, frame_number
-    if event == cv2.EVENT_LBUTTONDOWN:
-        root = tk.Tk()
-        root.withdraw()  # Hide the main window
+def handle_click(x, y):
+    global frame_number
+    actions = [
+        "Center of Mass", "Right Hand Pull", "Right Hand Push", "Left Hand Pull", 
+        "Left Hand Push", "Right Foot Pull", "Right Foot Push", "Left Foot Pull", "Left Foot Push"
+    ]
 
-        # Create a dialog with action buttons
-        def on_action(action):
-            if messagebox.askyesno("Confirm Action", f"Do you confirm '{action}' for frame {frame_number}?"):
-                root.comment = action
-                root.destroy()
-
-        dialog = tk.Toplevel(root)
-        dialog.title("Select Action")
-        tk.Label(dialog, text=f"Click at ({x}, {y}) on frame {frame_number}").pack()
-        actions = ["Center of Mass", "Right Hand Pull", "Right Hand Push", "Left Hand Pull", "Left Hand Push",
-                   "Right Foot Pull", "Right Foot Push", "Left Foot Pull", "Left Foot Push"]
-        for action in actions:
-            tk.Button(dialog, text=action, command=lambda a=action: on_action(a)).pack()
-        dialog.mainloop()
-
-        comment = getattr(root, 'comment', None)
-        if comment:
-            print(f"🖱 Clicked at: ({x}, {y}) on frame {frame_number} with action: {comment}")
-            data.append([frame_number, x, y, comment])
-            cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Draw on the frame
-            cv2.imshow("Video", frame)  # Update frame display
-            save_click_to_csv(frame_number, x, y, comment)  # Save to CSV
+    # Let user select the action from a dropdown
+    comment = st.selectbox(f"Select Action for Click at ({x}, {y}) on Frame {frame_number}", actions)
+    
+    # Save the click to CSV file
+    if comment:
+        print(f"🖱 Clicked at: ({x}, {y}) on frame {frame_number} with action: {comment}")
+        data.append([frame_number, x, y, comment])
+        cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Draw on the frame
+        cv2.imshow("Video", frame)  # Update frame display
+        save_click_to_csv(frame_number, x, y, comment)  # Save to CSV
 
 # Function to convert video frame to image for canvas background
 def video_to_image(frame):
@@ -120,8 +107,7 @@ if background_image is not None and isinstance(background_image, np.ndarray):
         clicks = canvas_result.json_data['objects']
         for click in clicks:
             x, y = click['left'], click['top']
-            comment = "User Defined Action"  # You can add logic here to define actions
-            save_click_to_csv(frame_number, x, y, comment)
+            handle_click(x, y)  # Handle the click using Streamlit components
 
 else:
     st.error("Error: Unable to load video frame as background image.")
