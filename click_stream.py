@@ -82,53 +82,52 @@ video_file = st.file_uploader("Upload Video", type=["mp4"])
 if video_file is not None:
     # Save the uploaded video to a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
-        tmp_file.write(video_file.read())  # Write the uploaded file content to the temporary file
-        tmp_file_path = tmp_file.name  # Store the temporary file path
-    
-    # Open the video file using OpenCV
-    cap = cv2.VideoCapture(tmp_file_path)
+        tmp_file.write(video_file.read())
+        video_path = tmp_file.name
 
-    # Ensure cap is successfully opened before proceeding
-    if cap.isOpened():
-        ret, frame = cap.read()
-        if ret:
-            background_image = video_to_image(frame)  # Convert to RGB for canvas background
-        else:
-            background_image = None
+    # Open the video using OpenCV
+    cap = cv2.VideoCapture(video_path)
 
-        # Show canvas only if the background image is available
-        if background_image is not None and isinstance(background_image, np.ndarray) and background_image.any():
-            canvas_result = st_canvas(
-                fill_color="rgba(255, 165, 0, 0.3)",  # Set canvas background
-                background_image=background_image,
-                width=frame.shape[1],
-                height=frame.shape[0],
-                drawing_mode="freedraw",
-                key="canvas",
-            )
+    if not cap.isOpened():
+        st.error("Error: Unable to open video file.")
+        exit()
 
-            # If the user clicks on the canvas, record the coordinates
-            if canvas_result.json_data is not None:
-                clicks = canvas_result.json_data['objects']
-                for click in clicks:
-                    x, y = click['left'], click['top']
-                    handle_click(x, y)  # Handle the click using Streamlit components
+    # Start at the first frame
+    move_to_next_frame()
 
-        else:
-            st.error("Error: Unable to load video frame as background image.")
+    # Streamlit drawing canvas for annotations
+    background_image = None
+    if frame is not None:
+        background_image = video_to_image(frame)
 
-        # Streamlit controls for video
-        st.sidebar.title("Controls")
-        if st.sidebar.button("Next Frame"):
+    # Check if the background image is valid (not None and not empty)
+    if background_image is not None and background_image.any():
+        canvas_result = st_canvas(
+            fill_color="rgba(255, 165, 0, 0.3)",  # Set canvas background color
+            background_image=background_image,  # Use the current frame as the canvas background
+            width=frame.shape[1],
+            height=frame.shape[0],
+            drawing_mode="freedraw",
+            key="canvas",
+            on_click=handle_click
+        )
+
+    # Handle frame navigation with next/previous buttons
+    col1, col2, col3 = st.columns([1, 4, 1])
+    with col1:
+        prev_button = st.button("Previous Frame")
+    with col3:
+        next_button = st.button("Next Frame")
+
+    if prev_button:
+        if frame_number > 0:
+            frame_number -= 1
             move_to_next_frame()
-        if st.sidebar.button("Previous Frame"):
-            move_to_previous_frame()
+    if next_button:
+        move_to_next_frame()
 
-else:
-    st.error("Please upload a video file to start.")
-
-# Release video capture at the end
-if cap is not None:
-    cap.release()
-
-# cv2.destroyAllWindows()  # Removed because it's not necessary in a headless environment
+    # Show and handle pausing
+    if paused:
+        st.button("Play Video", on_click=lambda: None)  # Add play functionality here later if needed
+    else:
+        st.button("Pause Video", on_click=lambda: None)  # Add pause functionality here later if needed
