@@ -12,6 +12,7 @@ frame_number = 0
 paused = True  # Start in paused mode
 csv_file_path = "clicked_points.csv"
 frame = None  # Store the current frame
+cap = None  # Initialize the video capture object
 
 # Function to save the click events to CSV file
 def save_click_to_csv(frame_number, x, y, comment):
@@ -88,6 +89,7 @@ if video_file is not None:
     # Open the video file using OpenCV
     cap = cv2.VideoCapture(tmp_file_path)
 
+    # Ensure cap is successfully opened before proceeding
     if cap.isOpened():
         ret, frame = cap.read()
         if ret:
@@ -126,5 +128,8 @@ if video_file is not None:
 else:
     st.error("Please upload a video file to start.")
 
-cap.release()
+# Release video capture at the end
+if cap is not None:
+    cap.release()
+
 cv2.destroyAllWindows()
