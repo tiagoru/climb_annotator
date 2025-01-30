@@ -11,7 +11,6 @@ frame_number = 0
 paused = True  # Start in paused mode
 csv_file_path = "clicked_points.csv"
 frame = None  # Store the current frame
-video_path = "NM 2022 Tromso Visningsrute 1.mp4"  # Replace with your video path
 
 # Function to save the click events to CSV file
 def save_click_to_csv(frame_number, x, y, comment):
@@ -73,64 +72,52 @@ def draw_frame_number():
         cv2.putText(frame, f"Frame: {frame_number}", (20, 40), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
 
-# Open the video file
-cap = cv2.VideoCapture(video_path)
-
-# Check if the video opened successfully
-if not cap.isOpened():
-    st.error("Error: Unable to open video file.")
-    exit()
-
-# Read the first frame
-ret, frame = cap.read()
-if ret:
-    background_image = video_to_image(frame)  # Convert to RGB for canvas background
-else:
-    background_image = None
-
 # Streamlit UI
 st.title("🧗 Climbing Video Annotator")
 
-# Show canvas only if the background image is available
-if background_image is not None and isinstance(background_image, np.ndarray):
-    canvas_result = st_canvas(
-        fill_color="rgba(255, 165, 0, 0.3)",  # Set canvas background
-        background_image=background_image,
-        width=frame.shape[1],
-        height=frame.shape[0],
-        drawing_mode="freedraw",
-        key="canvas",
-    )
+# Allow the user to upload a video file
+video_file = st.file_uploader("Upload Video", type=["mp4"])
 
-    # If the user clicks on the canvas, record the coordinates
-    if canvas_result.json_data is not None:
-        clicks = canvas_result.json_data['objects']
-        for click in clicks:
-            x, y = click['left'], click['top']
-            handle_click(x, y)  # Handle the click using Streamlit components
+if video_file is not None:
+    cap = cv2.VideoCapture(video_file)
+
+    if cap.isOpened():
+        ret, frame = cap.read()
+        if ret:
+            background_image = video_to_image(frame)  # Convert to RGB for canvas background
+        else:
+            background_image = None
+
+        # Show canvas only if the background image is available
+        if background_image is not None and isinstance(background_image, np.ndarray):
+            canvas_result = st_canvas(
+                fill_color="rgba(255, 165, 0, 0.3)",  # Set canvas background
+                background_image=background_image,
+                width=frame.shape[1],
+                height=frame.shape[0],
+                drawing_mode="freedraw",
+                key="canvas",
+            )
+
+            # If the user clicks on the canvas, record the coordinates
+            if canvas_result.json_data is not None:
+                clicks = canvas_result.json_data['objects']
+                for click in clicks:
+                    x, y = click['left'], click['top']
+                    handle_click(x, y)  # Handle the click using Streamlit components
+
+        else:
+            st.error("Error: Unable to load video frame as background image.")
+
+        # Streamlit controls for video
+        st.sidebar.title("Controls")
+        if st.sidebar.button("Next Frame"):
+            move_to_next_frame()
+        if st.sidebar.button("Previous Frame"):
+            move_to_previous_frame()
 
 else:
-    st.error("Error: Unable to load video frame as background image.")
-
-# Streamlit controls for video
-st.sidebar.title("Controls")
-if st.sidebar.button("Next Frame"):
-    move_to_next_frame()
-if st.sidebar.button("Previous Frame"):
-    move_to_previous_frame()
-
-# Display the video and handle key presses for navigation
-if not paused:
-    ret, frame = cap.read()
-    if not ret or frame is None or frame.size == 0:
-        print("Reached end of video.")
-        st.stop()  # Stop Streamlit app if video ends
-    frame_number += 1
-    draw_frame_number()
-    for point in data:
-        if point[0] == frame_number:
-            cv2.circle(frame, (point[1], point[2]), 5, (0, 0, 255), -1)
-    cv2.imshow("Video", frame)
+    st.error("Please upload a video file to start.")
 
 cap.release()
 cv2.destroyAllWindows()
