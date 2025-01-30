@@ -2,17 +2,22 @@ import streamlit as st
 import cv2
 import numpy as np
 import tempfile
+import time
 import csv
 import os
 
-# Initialize global variables
-frame_number = 0
-paused = True
-clicked_points = []
-csv_file_path = "clicked_points.csv"
-
-# 🎥 Streamlit Title
+# 🎥 Streamlit UI
 st.title("🧗 Climbing Video Annotator")
+
+# Initialize session state
+if "frame_number" not in st.session_state:
+    st.session_state.frame_number = 0
+if "paused" not in st.session_state:
+    st.session_state.paused = True
+if "clicked_points" not in st.session_state:
+    st.session_state.clicked_points = []
+if "cap" not in st.session_state:
+    st.session_state.cap = None
 
 # 📂 Upload Video File
 uploaded_file = st.file_uploader("📤 Upload a video file", type=["mp4", "avi", "mov"])
@@ -24,6 +29,7 @@ if uploaded_file:
 
     # Open video using OpenCV
     cap = cv2.VideoCapture(temp_video.name)
+    st.session_state.cap = cap  # Store in session state
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
 
@@ -38,18 +44,19 @@ if uploaded_file:
 
     # 🖼 Display Frame
     st_frame = st.empty()  # Placeholder for video frame
-    frame = get_frame(frame_number)
+    frame = get_frame(st.session_state.frame_number)
     if frame is not None:
-        st_frame.image(frame, caption=f"Frame {frame_number}/{total_frames}")
+        st_frame.image(frame, caption=f"Frame {st.session_state.frame_number}/{total_frames}")
 
     # 🎯 Click Handler
     def save_click(x, y, action):
-        global frame_number
-        clicked_points.append([frame_number, x, y, action])
-        save_to_csv(frame_number, x, y, action)
-        st.success(f"✅ Clicked at ({x}, {y}) on Frame {frame_number} - Action: {action}")
+        st.session_state.clicked_points.append([st.session_state.frame_number, x, y, action])
+        save_to_csv(st.session_state.frame_number, x, y, action)
+        st.success(f"✅ Clicked at ({x}, {y}) on Frame {st.session_state.frame_number} - Action: {action}")
 
     # 📌 Save Clicks to CSV
+    csv_file_path = "clicked_points.csv"
+
     def save_to_csv(frame, x, y, action):
         file_exists = os.path.exists(csv_file_path)
         with open(csv_file_path, mode='a', newline='') as file:
@@ -73,24 +80,23 @@ if uploaded_file:
     # 🎥 Video Playback Controls
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("⏪ Previous Frame") and frame_number > 0:
-            frame_number -= 1
+        if st.button("⏪ Previous Frame") and st.session_state.frame_number > 0:
+            st.session_state.frame_number -= 1
     with col2:
         if st.button("⏯ Pause/Play"):
-            paused = not paused
+            st.session_state.paused = not st.session_state.paused
     with col3:
-        if st.button("⏩ Next Frame") and frame_number < total_frames - 1:
-            frame_number += 1
+        if st.button("⏩ Next Frame") and st.session_state.frame_number < total_frames - 1:
+            st.session_state.frame_number += 1
 
-    # 🏃 Auto-Play Video if Not Paused
-    if not paused:
-        frame_number += 1
-        if frame_number >= total_frames:
-            frame_number = 0  # Loop back to the start
-
-    # 🖼 Update Frame Display
-    frame = get_frame(frame_number)
-    if frame is not None:
-        st_frame.image(frame, caption=f"Frame {frame_number}/{total_frames}")
+    # 🎬 Auto-Play Video if Not Paused
+    while not st.session_state.paused:
+        frame = get_frame(st.session_state.frame_number)
+        if frame is not None:
+            st_frame.image(frame, caption=f"Frame {st.session_state.frame_number}/{total_frames}")
+            time.sleep(1 / fps)  # Simulate real-time playback
+            st.session_state.frame_number += 1
+            if st.session_state.frame_number >= total_frames:
+                st.session_state.frame_number = 0  # Restart video
 
     cap.release()
