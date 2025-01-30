@@ -43,7 +43,6 @@ def handle_click(x, y):
         print(f"🖱 Clicked at: ({x}, {y}) on frame {frame_number} with action: {comment}")
         data.append([frame_number, x, y, comment])
         cv2.circle(frame, (x, y), 5, (0, 0, 255), -1)  # Draw on the frame
-        cv2.imshow("Video", frame)  # Update frame display
         save_click_to_csv(frame_number, x, y, comment)  # Save to CSV
 
 # Function to convert video frame to image for canvas background
@@ -66,7 +65,7 @@ def move_to_next_frame():
         if point[0] == frame_number:
             cv2.circle(frame, (point[1], point[2]), 5, (0, 0, 255), -1)
     
-    cv2.imshow("Video", frame)
+    st.image(video_to_image(frame), caption=f"Frame {frame_number}", channels="RGB", use_column_width=True)
 
 # Function to draw the frame number on the frame
 def draw_frame_number():
@@ -98,7 +97,7 @@ if video_file is not None:
             background_image = None
 
         # Show canvas only if the background image is available
-        if background_image is not None and isinstance(background_image, np.ndarray):
+        if background_image is not None and isinstance(background_image, np.ndarray) and background_image.any():
             canvas_result = st_canvas(
                 fill_color="rgba(255, 165, 0, 0.3)",  # Set canvas background
                 background_image=background_image,
@@ -132,4 +131,4 @@ else:
 if cap is not None:
     cap.release()
 
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()  # Removed because it's not necessary in a headless environment
