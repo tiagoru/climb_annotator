@@ -5,9 +5,10 @@ import tempfile
 import time
 import csv
 import os
+from streamlit_drawable_canvas import st_canvas
 
 # 🎥 Streamlit UI
-st.title("🧗 Climbing Video Annotator")
+st.title("🧗 Climbing Video Annotator version 10 TGR")
 
 # Initialize session state
 if "frame_number" not in st.session_state:
@@ -65,17 +66,31 @@ if uploaded_file:
                 writer.writerow(["Frame Number", "X", "Y", "Action"])
             writer.writerow([frame, x, y, action])
 
-    # 🖱 Mouse Click Event
+    # 🖱 Mouse Click Event - Detect Clicks
     st.sidebar.header("🖱 Click Annotation")
-    click_x = st.sidebar.number_input("X Coordinate", min_value=0, value=100)
-    click_y = st.sidebar.number_input("Y Coordinate", min_value=0, value=100)
-    action = st.sidebar.selectbox("Select Action", [
-        "Center of Mass", "Right Hand Pull", "Right Hand Push",
-        "Left Hand Pull", "Left Hand Push", "Right Foot Pull",
-        "Right Foot Push", "Left Foot Pull", "Left Foot Push"
-    ])
-    if st.sidebar.button("🔘 Save Click"):
-        save_click(click_x, click_y, action)
+
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 165, 0, 0.3)",  # Transparent color
+        stroke_width=3,
+        stroke_color="#FF0000",  # Red circles
+        background_image=frame if frame is not None else None,
+        height=frame.shape[0] if frame is not None else 400,
+        width=frame.shape[1] if frame is not None else 600,
+        drawing_mode="circle",  # Clicks create circles
+        key="canvas",
+    )
+
+    # Get Click Coordinates
+    if canvas_result.json_data is not None:
+        for obj in canvas_result.json_data["objects"]:
+            x, y = int(obj["left"]), int(obj["top"])
+            action = st.sidebar.selectbox("Select Action", [
+                "Center of Mass", "Right Hand Pull", "Right Hand Push",
+                "Left Hand Pull", "Left Hand Push", "Right Foot Pull",
+                "Right Foot Push", "Left Foot Pull", "Left Foot Push"
+            ], key=f"action_{x}_{y}")
+            if st.sidebar.button("🔘 Save Click", key=f"save_{x}_{y}"):
+                save_click(x, y, action)
 
     # 🎥 Video Playback Controls
     col1, col2, col3 = st.columns(3)
