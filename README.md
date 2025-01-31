@@ -1,5 +1,5 @@
 # climb_annotator
-# Tiag g. Russomanno  31.01.2025
+### Tiago g. Russomanno  31.01.2025
 
 ## 🎥 Overview
 This project is a **Video Frame Annotator** that allows users to annotate video frames by clicking on specific points and selecting predefined actions. It is useful for analyzing movement, marking key points, and tracking interactions in videos.
